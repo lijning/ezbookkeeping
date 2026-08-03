@@ -76,6 +76,8 @@ const (
 	TRANSACTION_DATA_TABLE_MEMBER                   TransactionDataTableColumn = 102
 	TRANSACTION_DATA_TABLE_PROJECT                  TransactionDataTableColumn = 103
 	TRANSACTION_DATA_TABLE_MERCHANT                 TransactionDataTableColumn = 104
+	TRANSACTION_DATA_TABLE_EXTERNAL_ID              TransactionDataTableColumn = 105
+	TRANSACTION_DATA_TABLE_RAW_SOURCE_PAYLOAD       TransactionDataTableColumn = 106
 )
 
 // TRANSACTION_DATA_TABLE_TIMEZONE_NOT_AVAILABLE represents the constant for timezone not available

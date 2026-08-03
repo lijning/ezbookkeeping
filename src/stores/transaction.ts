@@ -1558,7 +1558,7 @@ export const useTransactionsStore = defineStore('transactions', () => {
         });
     }
 
-    function importTransactions({ transactions, clientSessionId }: { transactions: ImportTransaction[], clientSessionId: string }): Promise<number> {
+    function importTransactions({ transactions, clientSessionId, sourceType }: { transactions: ImportTransaction[], clientSessionId: string, sourceType: string }): Promise<number> {
         const submitTransactions: TransactionCreateRequest[] = [];
 
         if (transactions) {
@@ -1571,11 +1571,12 @@ export const useTransactionsStore = defineStore('transactions', () => {
         return new Promise((resolve, reject) => {
             services.importTransactions({
                 transactions: submitTransactions,
-                clientSessionId: clientSessionId
+                clientSessionId: clientSessionId,
+                sourceType: sourceType
             }).then(response => {
                 const data = response.data;
 
-                if (!data || !data.success || !data.result) {
+                if (!data || !data.success || data.result === undefined || data.result === null) {
                     reject({ message: 'Unable to import transactions' });
                     return;
                 }

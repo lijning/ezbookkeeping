@@ -394,6 +394,18 @@ func (c *DataTableTransactionDataImporter) ParseImportedData(ctx core.Context, u
 			OriginalTagNames:                   tagNames,
 		}
 
+		if dataTable.HasColumn(datatable.TRANSACTION_DATA_TABLE_RAW_SOURCE_PAYLOAD) {
+			rawPayload := dataRow.GetData(datatable.TRANSACTION_DATA_TABLE_RAW_SOURCE_PAYLOAD)
+
+			if rawPayload != "" {
+				transaction.ImportSourcePayload = rawPayload
+			}
+		}
+
+		if dataTable.HasColumn(datatable.TRANSACTION_DATA_TABLE_EXTERNAL_ID) {
+			transaction.ImportExternalId = dataRow.GetData(datatable.TRANSACTION_DATA_TABLE_EXTERNAL_ID)
+		}
+
 		allNewTransactions = append(allNewTransactions, transaction)
 	}
 

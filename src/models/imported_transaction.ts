@@ -21,6 +21,8 @@ export class ImportTransaction implements ImportTransactionResponse {
     public originalTagNames: string[];
     public comment: string;
     public geoLocation?: TransactionGeoLocationResponse;
+    public importSourcePayload: string;
+    public importExternalId: string;
 
     public actualCategoryName: string;
     public actualSourceAccountName: string;
@@ -47,6 +49,8 @@ export class ImportTransaction implements ImportTransactionResponse {
         this.originalTagNames = response.originalTagNames || [];
         this.comment = response.comment;
         this.geoLocation = response.geoLocation;
+        this.importSourcePayload = response.importSourcePayload;
+        this.importExternalId = response.importExternalId;
 
         this.actualCategoryName = response.originalCategoryName;
         this.actualSourceAccountName = response.originalSourceAccountName;
@@ -71,7 +75,9 @@ export class ImportTransaction implements ImportTransactionResponse {
             pictureIds: [],
             comment: this.comment,
             geoLocation: this.geoLocation,
-            clientSessionId: ''
+            clientSessionId: '',
+            importSourcePayload: this.importSourcePayload,
+            importExternalId: this.importExternalId
         };
     }
 
@@ -144,6 +150,8 @@ export interface ImportTransactionResponse {
     readonly originalTagNames: string[];
     readonly comment: string;
     readonly geoLocation?: TransactionGeoLocationResponse;
+    readonly importSourcePayload: string;
+    readonly importExternalId: string;
 }
 
 export interface ImportTransactionResponsePageWrapper {

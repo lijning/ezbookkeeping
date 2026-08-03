@@ -24,6 +24,7 @@ type UserDataCli struct {
 	CliUsingConfig
 	accounts                *services.AccountService
 	transactions            *services.TransactionService
+	importTransactions      *services.ImportTransactionService
 	categories              *services.TransactionCategoryService
 	tags                    *services.TransactionTagService
 	users                   *services.UserService
@@ -40,6 +41,7 @@ var (
 		},
 		accounts:                services.Accounts,
 		transactions:            services.Transactions,
+		importTransactions:      services.ImportTransactions,
 		categories:              services.TransactionCategories,
 		tags:                    services.TransactionTags,
 		users:                   services.Users,
@@ -869,7 +871,7 @@ func (l *UserDataCli) ImportTransaction(c *core.CliContext, username string, fil
 		return errs.ErrOperationFailed
 	}
 
-	err = l.transactions.BatchCreateTransactions(c, user.Uid, newTransactions, newTransactionTagIdsMap, nil)
+	_, err = l.importTransactions.ImportTransactions(c, user.Uid, fileType, newTransactions, newTransactionTagIdsMap, nil)
 
 	if err != nil {
 		log.CliErrorf(c, "[user_data.ImportTransaction] failed to create transaction, because %s", err.Error())

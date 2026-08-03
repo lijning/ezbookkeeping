@@ -21,6 +21,10 @@ import (
 
 const pageCountForLoadTransactionAmounts = 1000
 
+// BatchTransactionCreateHandler runs in the same transaction before the batch when index is -1,
+// then after each transaction is created.
+type BatchTransactionCreateHandler func(sess *xorm.Session, index int, transaction *models.Transaction) error
+
 // TransactionService represents transaction service
 type TransactionService struct {
 	ServiceUsingDB
@@ -636,6 +640,11 @@ func (s *TransactionService) CreateTransaction(c core.Context, transaction *mode
 
 // BatchCreateTransactions saves new transactions to database
 func (s *TransactionService) BatchCreateTransactions(c core.Context, uid int64, transactions []*models.Transaction, allTagIds map[int][]int64, processHandler core.TaskProcessUpdateHandler) error {
+	return s.BatchCreateTransactionsWithHandler(c, uid, transactions, allTagIds, processHandler, nil)
+}
+
+// BatchCreateTransactionsWithHandler saves new transactions and runs handler within the same database transaction.
+func (s *TransactionService) BatchCreateTransactionsWithHandler(c core.Context, uid int64, transactions []*models.Transaction, allTagIds map[int][]int64, processHandler core.TaskProcessUpdateHandler, transactionCreateHandler BatchTransactionCreateHandler) error {
 	now := time.Now().Unix()
 	currentProcess := float64(0)
 	processUpdateStep := int(math.Max(100.0, float64(len(transactions)/100.0)))
@@ -738,6 +747,14 @@ func (s *TransactionService) BatchCreateTransactions(c core.Context, uid int64, 
 	userDataDb := s.UserDataDB(uid)
 
 	return userDataDb.DoTransaction(c, func(sess *xorm.Session) error {
+		if transactionCreateHandler != nil {
+			err := transactionCreateHandler(sess, -1, nil)
+
+			if err != nil {
+				return err
+			}
+		}
+
 		for i := 0; i < len(transactions); i++ {
 			transaction := transactions[i]
 			transactionTagIndexes := allTransactionTagIndexes[transaction.TransactionId]
@@ -755,6 +772,14 @@ func (s *TransactionService) BatchCreateTransactions(c core.Context, uid int64, 
 				transactionTimeZone := time.FixedZone("Transaction Timezone", int(transaction.TimezoneUtcOffset)*60)
 				log.Errorf(c, "[transactions.BatchCreateTransactions] failed to create trasaction (datetime: %s, type: %s, amount: %d)", utils.FormatUnixTimeToLongDateTime(transactionUnixTime, transactionTimeZone), transaction.Type, transaction.Amount)
 				return err
+			}
+
+			if transactionCreateHandler != nil {
+				err = transactionCreateHandler(sess, i, transaction)
+
+				if err != nil {
+					return err
+				}
 			}
 		}
 

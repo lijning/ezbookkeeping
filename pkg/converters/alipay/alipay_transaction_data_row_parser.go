@@ -1,6 +1,7 @@
 package alipay
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/mayswind/ezbookkeeping/pkg/converters/datatable"
@@ -30,6 +31,12 @@ const alipayTransactionDataProductNameTransferOutText = "转出"
 const alipayTransactionDataProductNameTransferText = "转账"
 const alipayTransactionDataProductNameRepaymentText = "还款"
 
+var alipayTransactionExternalIdColumnNames = []string{
+	"交易号",
+	"支付宝交易号",
+	"交易订单号",
+}
+
 // alipayTransactionDataRowParser defines the structure of alipay transaction data row parser
 type alipayTransactionDataRowParser struct {
 	columns                    alipayTransactionColumnNames
@@ -57,6 +64,15 @@ func (p *alipayTransactionDataRowParser) Parse(ctx core.Context, user *models.Us
 	}
 
 	data := make(map[datatable.TransactionDataTableColumn]string, len(alipayTransactionSupportedColumns))
+	externalId := p.getExternalId(dataRow)
+	rawPayload, rawPayloadErr := p.getRawPayload(dataRow, externalId)
+
+	if rawPayloadErr != nil {
+		return nil, false, rawPayloadErr
+	}
+
+	data[datatable.TRANSACTION_DATA_TABLE_EXTERNAL_ID] = externalId
+	data[datatable.TRANSACTION_DATA_TABLE_RAW_SOURCE_PAYLOAD] = rawPayload
 
 	if p.hasOriginalColumn(p.columns.timeColumnName) {
 		data[datatable.TRANSACTION_DATA_TABLE_TRANSACTION_TIME] = dataRow.GetData(p.columns.timeColumnName)
@@ -202,6 +218,41 @@ func (p *alipayTransactionDataRowParser) Parse(ctx core.Context, user *models.Us
 func (p *alipayTransactionDataRowParser) hasOriginalColumn(columnName string) bool {
 	_, exists := p.existedOriginalDataColumns[columnName]
 	return exists
+}
+
+func (p *alipayTransactionDataRowParser) getExternalId(dataRow datatable.CommonDataTableRow) string {
+	for _, columnName := range alipayTransactionExternalIdColumnNames {
+		if !p.hasOriginalColumn(columnName) {
+			continue
+		}
+
+		externalId := strings.TrimSpace(dataRow.GetData(columnName))
+
+		if externalId != "" {
+			return "trade_no:" + externalId
+		}
+	}
+
+	return ""
+}
+
+func (p *alipayTransactionDataRowParser) getRawPayload(dataRow datatable.CommonDataTableRow, externalId string) (string, error) {
+	rawData := make(map[string]string, len(p.existedOriginalDataColumns))
+
+	for columnName := range p.existedOriginalDataColumns {
+		rawData[columnName] = dataRow.GetData(columnName)
+	}
+
+	payload, err := json.Marshal(map[string]interface{}{
+		"externalId": externalId,
+		"raw":        rawData,
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(payload), nil
 }
 
 // createAlipayTransactionDataRowParser returns alipay transaction data row parser

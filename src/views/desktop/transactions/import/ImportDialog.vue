@@ -1222,7 +1222,8 @@ function submit(): void {
 
         transactionsStore.importTransactions({
             transactions: transactions,
-            clientSessionId: clientSessionId.value
+            clientSessionId: clientSessionId.value,
+            sourceType: fileSubType.value ? `${fileType.value}:${fileSubType.value}` : fileType.value
         }).then(response => {
             if (showProcessTimer) {
                 importProcess.value = 0;

@@ -146,6 +146,8 @@ type Transaction struct {
 	CreatedUnixTime      int64
 	UpdatedUnixTime      int64
 	DeletedUnixTime      int64
+	ImportSourcePayload  string `xorm:"-"`
+	ImportExternalId     string `xorm:"-"`
 }
 
 // TransactionWithAccountBalance represents a transaction item with account balance
@@ -177,6 +179,8 @@ type TransactionCreateRequest struct {
 	Comment              string                         `json:"comment" binding:"max=255"`
 	GeoLocation          *TransactionGeoLocationRequest `json:"geoLocation" binding:"omitempty"`
 	ClientSessionId      string                         `json:"clientSessionId"`
+	ImportSourcePayload  string                         `json:"importSourcePayload" binding:"max=65535"`
+	ImportExternalId     string                         `json:"importExternalId" binding:"max=255"`
 }
 
 // TransactionModifyRequest represents all parameters of transaction modification request
@@ -201,6 +205,7 @@ type TransactionModifyRequest struct {
 type TransactionImportRequest struct {
 	Transactions    []*TransactionCreateRequest `json:"transactions"`
 	ClientSessionId string                      `json:"clientSessionId"`
+	SourceType      string                      `json:"sourceType" binding:"max=64"`
 }
 
 // TransactionImportProcessRequest represents all parameters of transaction import process request

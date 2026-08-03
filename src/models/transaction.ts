@@ -544,6 +544,8 @@ export interface TransactionCreateRequest {
     readonly comment: string;
     readonly geoLocation?: TransactionGeoLocationRequest;
     readonly clientSessionId: string;
+    readonly importSourcePayload?: string;
+    readonly importExternalId?: string;
 }
 
 export interface TransactionModifyRequest {
@@ -605,6 +607,7 @@ export interface TransactionBatchDeleteRequest {
 export interface TransactionImportRequest {
     readonly transactions: TransactionCreateRequest[];
     readonly clientSessionId: string;
+    readonly sourceType: string;
 }
 
 export interface TransactionListByMaxTimeRequest {

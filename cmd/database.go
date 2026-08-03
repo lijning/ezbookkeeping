@@ -93,6 +93,38 @@ func updateAllDatabaseTablesStructure(c *core.CliContext) error {
 
 	log.BootInfof(c, "[database.updateAllDatabaseTablesStructure] transaction table maintained successfully")
 
+	err = datastore.Container.UserDataStore.SyncStructs(new(models.ImportBatch))
+
+	if err != nil {
+		return err
+	}
+
+	log.BootInfof(c, "[database.updateAllDatabaseTablesStructure] import batch table maintained successfully")
+
+	err = datastore.Container.UserDataStore.SyncStructs(new(models.ImportMatchGroup))
+
+	if err != nil {
+		return err
+	}
+
+	log.BootInfof(c, "[database.updateAllDatabaseTablesStructure] import match group table maintained successfully")
+
+	err = datastore.Container.UserDataStore.SyncStructs(new(models.ImportMatchGroupMember))
+
+	if err != nil {
+		return err
+	}
+
+	log.BootInfof(c, "[database.updateAllDatabaseTablesStructure] import match group member table maintained successfully")
+
+	err = datastore.Container.UserDataStore.SyncStructs(new(models.ImportSourceRecord))
+
+	if err != nil {
+		return err
+	}
+
+	log.BootInfof(c, "[database.updateAllDatabaseTablesStructure] import source record table maintained successfully")
+
 	err = datastore.Container.UserDataStore.SyncStructs(new(models.TransactionCategory))
 
 	if err != nil {

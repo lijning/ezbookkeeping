@@ -1,6 +1,10 @@
 package models
 
-import "github.com/mayswind/ezbookkeeping/pkg/utils"
+import (
+	"encoding/json"
+
+	"github.com/mayswind/ezbookkeeping/pkg/utils"
+)
 
 // ImportTransaction represents the imported transaction data
 type ImportTransaction struct {
@@ -34,6 +38,21 @@ type ImportTransactionRequestItem struct {
 	Comment                string `json:"comment,omitempty"`
 }
 
+type importTransactionSourcePayload struct {
+	OriginalCategoryName               string            `json:"originalCategoryName"`
+	OriginalSourceAccountName          string            `json:"originalSourceAccountName"`
+	OriginalSourceAccountCurrency      string            `json:"originalSourceAccountCurrency"`
+	OriginalDestinationAccountName     string            `json:"originalDestinationAccountName"`
+	OriginalDestinationAccountCurrency string            `json:"originalDestinationAccountCurrency"`
+	OriginalTagNames                   []string          `json:"originalTagNames"`
+	TransactionTime                    int64             `json:"transactionTime"`
+	TimezoneUtcOffset                  int16             `json:"timezoneUtcOffset"`
+	TransactionType                    TransactionDbType `json:"transactionType"`
+	Amount                             int64             `json:"amount"`
+	RelatedAmount                      int64             `json:"relatedAmount"`
+	Comment                            string            `json:"comment"`
+}
+
 // ImportTransactionResponse represents a view-object of the imported transaction data
 type ImportTransactionResponse struct {
 	Type                               TransactionType                 `json:"type"`
@@ -53,6 +72,8 @@ type ImportTransactionResponse struct {
 	OriginalTagNames                   []string                        `json:"originalTagNames"`
 	Comment                            string                          `json:"comment"`
 	GeoLocation                        *TransactionGeoLocationResponse `json:"geoLocation,omitempty"`
+	ImportSourcePayload                string                          `json:"importSourcePayload"`
+	ImportExternalId                   string                          `json:"importExternalId"`
 }
 
 // ImportTransactionResponsePageWrapper represents a response of imported transaction which contains items and count
@@ -96,7 +117,36 @@ func (t ImportTransaction) ToImportTransactionResponse() *ImportTransactionRespo
 		OriginalTagNames:                   t.OriginalTagNames,
 		Comment:                            t.Comment,
 		GeoLocation:                        geoLocation,
+		ImportSourcePayload:                t.getImportSourcePayload(),
+		ImportExternalId:                   t.ImportExternalId,
 	}
+}
+
+func (t ImportTransaction) getImportSourcePayload() string {
+	if t.ImportSourcePayload != "" {
+		return t.ImportSourcePayload
+	}
+
+	payload, err := json.Marshal(&importTransactionSourcePayload{
+		OriginalCategoryName:               t.OriginalCategoryName,
+		OriginalSourceAccountName:          t.OriginalSourceAccountName,
+		OriginalSourceAccountCurrency:      t.OriginalSourceAccountCurrency,
+		OriginalDestinationAccountName:     t.OriginalDestinationAccountName,
+		OriginalDestinationAccountCurrency: t.OriginalDestinationAccountCurrency,
+		OriginalTagNames:                   t.OriginalTagNames,
+		TransactionTime:                    t.TransactionTime,
+		TimezoneUtcOffset:                  t.TimezoneUtcOffset,
+		TransactionType:                    t.Type,
+		Amount:                             t.Amount,
+		RelatedAmount:                      t.RelatedAccountAmount,
+		Comment:                            t.Comment,
+	})
+
+	if err != nil {
+		return ""
+	}
+
+	return string(payload)
 }
 
 // ImportedTransactionSlice represents the slice data structure of import transaction data

@@ -33,6 +33,7 @@ type TransactionsApi struct {
 	ApiUsingConfig
 	ApiUsingDuplicateChecker
 	transactions          *services.TransactionService
+	importTransactions    *services.ImportTransactionService
 	transactionCategories *services.TransactionCategoryService
 	transactionTags       *services.TransactionTagService
 	transactionPictures   *services.TransactionPictureService
@@ -53,6 +54,7 @@ var (
 			container: duplicatechecker.Container,
 		},
 		transactions:          services.Transactions,
+		importTransactions:    services.ImportTransactions,
 		transactionCategories: services.TransactionCategories,
 		transactionTags:       services.TransactionTags,
 		transactionPictures:   services.TransactionPictures,
@@ -2670,22 +2672,21 @@ func (a *TransactionsApi) TransactionImportHandler(c *core.WebContext) (any, *er
 		}
 	}
 
-	err = a.transactions.BatchCreateTransactions(c, user.Uid, newTransactions, newTransactionTagIdsMap, func(currentProcess float64) {
+	importResult, err := a.importTransactions.ImportTransactions(c, user.Uid, transactionImportReq.SourceType, newTransactions, newTransactionTagIdsMap, func(currentProcess float64) {
 		a.SetSubmissionRemarkIfEnable(duplicatechecker.DUPLICATE_CHECKER_TYPE_IMPORT_TRANSACTIONS, uid, transactionImportReq.ClientSessionId, fmt.Sprintf("processing:%.2f", currentProcess))
 	})
-	count := len(newTransactions)
 
 	if err != nil {
 		a.RemoveSubmissionRemarkIfEnable(duplicatechecker.DUPLICATE_CHECKER_TYPE_IMPORT_TRANSACTIONS, uid, transactionImportReq.ClientSessionId)
-		log.Errorf(c, "[transactions.TransactionImportHandler] failed to import %d transactions for user \"uid:%d\", because %s", count, uid, err.Error())
+		log.Errorf(c, "[transactions.TransactionImportHandler] failed to import %d transactions for user \"uid:%d\", because %s", len(newTransactions), uid, err.Error())
 		return nil, errs.Or(err, errs.ErrOperationFailed)
 	}
 
-	log.Infof(c, "[transactions.TransactionImportHandler] user \"uid:%d\" has imported %d transactions successfully", uid, count)
+	log.Infof(c, "[transactions.TransactionImportHandler] user \"uid:%d\" has imported %d transactions successfully, skipped %d duplicated source records", uid, importResult.ImportedRecordCount, importResult.DuplicateRecordCount)
 
-	a.SetSubmissionRemarkIfEnable(duplicatechecker.DUPLICATE_CHECKER_TYPE_IMPORT_TRANSACTIONS, uid, transactionImportReq.ClientSessionId, fmt.Sprintf("finished:%d", count))
+	a.SetSubmissionRemarkIfEnable(duplicatechecker.DUPLICATE_CHECKER_TYPE_IMPORT_TRANSACTIONS, uid, transactionImportReq.ClientSessionId, fmt.Sprintf("finished:%d", importResult.ImportedRecordCount))
 
-	return count, nil
+	return importResult.ImportedRecordCount, nil
 }
 
 // TransactionImportProcessHandler returns the process of specified transaction import task by request parameters for current user
@@ -2996,16 +2997,18 @@ func (a *TransactionsApi) createNewTransactionModel(uid int64, transactionCreate
 	}
 
 	transaction := &models.Transaction{
-		Uid:               uid,
-		Type:              transactionDbType,
-		CategoryId:        transactionCreateReq.CategoryId,
-		TransactionTime:   utils.GetMinTransactionTimeFromUnixTime(transactionCreateReq.Time),
-		TimezoneUtcOffset: transactionCreateReq.UtcOffset,
-		AccountId:         transactionCreateReq.SourceAccountId,
-		Amount:            transactionCreateReq.SourceAmount,
-		HideAmount:        transactionCreateReq.HideAmount,
-		Comment:           transactionCreateReq.Comment,
-		CreatedIp:         clientIp,
+		Uid:                 uid,
+		Type:                transactionDbType,
+		CategoryId:          transactionCreateReq.CategoryId,
+		TransactionTime:     utils.GetMinTransactionTimeFromUnixTime(transactionCreateReq.Time),
+		TimezoneUtcOffset:   transactionCreateReq.UtcOffset,
+		AccountId:           transactionCreateReq.SourceAccountId,
+		Amount:              transactionCreateReq.SourceAmount,
+		HideAmount:          transactionCreateReq.HideAmount,
+		Comment:             transactionCreateReq.Comment,
+		CreatedIp:           clientIp,
+		ImportSourcePayload: transactionCreateReq.ImportSourcePayload,
+		ImportExternalId:    transactionCreateReq.ImportExternalId,
 	}
 
 	if transactionCreateReq.Type == models.TRANSACTION_TYPE_TRANSFER {
